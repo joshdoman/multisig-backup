@@ -1,8 +1,8 @@
 # multisig-backup
 
-A tool for inscribing a `k-of-n` multisig descriptor publicly on Bitcoin without revealing the public keys.
+A tool to safely inscribe a `k-of-n` multisig descriptor permanently on Bitcoin so that `k` seeds is sufficient to recover the funds.
 
-This solution encrypts the descriptor so that it cannot be recovered without `k` extended public keys (xpubs), preserving the user's privacy while ensuring that `k` seed phrases is always sufficient for a user to recover their wallet.
+This solution encrypts the sensitive data in the descriptor so that it cannot be recovered without `k` extended public keys (xpubs), allowing it to be inscribed publicly on Bitcoin while preserving the user's privacy.
 
 ## The Problem
 
@@ -47,6 +47,13 @@ Several multisig wallets natively support output descriptors (see the [full list
 3.  Open the `.txt` file in your downloads folder and copy the [BIP389](https://github.com/bitcoin/bips/blob/master/bip-0389.mediawiki) descriptor.
 
 Sparrow can import non-standard multisig configuration files from several wallets, including Unchained, Blue Wallet, Jade, Passport, and others. 
+
+## Screenshots
+### Encryption
+<img width="1460" alt="Screenshot 2024-11-12 at 3 44 28 PM" src="https://github.com/user-attachments/assets/bbd06478-a358-40ac-91d3-a77d22365624">
+
+### Decryption
+<img width="1462" alt="Screenshot 2024-11-12 at 3 44 49 PM" src="https://github.com/user-attachments/assets/7491f56a-b716-4492-8a14-365895e40a4c">
 
 ## Prerequisites
 
