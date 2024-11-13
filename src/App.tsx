@@ -105,12 +105,12 @@ const App = () => {
       <Card className="w-full max-w-2xl mx-auto m-4">
         <CardHeader>
           <CardTitle>Bitcoin Multisig Backup</CardTitle>
-          <p className='italic'>Safely inscribe your <span className='font-bold'>k-of-n</span> multisig so that <span className='font-bold'>k</span> seeds is all you need to recover.</p>
+          <p className='italic'>Encrypt and inscribe your <span className='font-bold'>k-of-n</span> multisig on Bitcoin — recover with any <span className='font-bold'>k</span> seeds.</p>
           <p className='font-bold pt-4'>How It Works</p>
           <p className='text-sm'>
             This tool encrypts the sensitive data in your <span className='font-bold'>k-of-n</span> descriptor 
-            so you can safely inscribe it permanently on Bitcoin.
-            Recovery is easy - simply decrypt using any <span className='font-bold'>k</span> extended public keys.   
+            so you can safely inscribe it on Bitcoin.
+            Recovery is easy - simply decrypt by deriving any <span className='font-bold'>k</span> extended public keys.
           </p>
         </CardHeader>
         <CardContent>
@@ -274,7 +274,7 @@ const App = () => {
                       To recover your descriptor, simply input the encrypted text and
                       any <span className='font-bold'>k</span> xpubs.
                       If you do not know the xpubs but have <span className='font-bold'>k</span> seeds,
-                      use the derivation paths in the descriptor template to
+                      use the derivation paths at the start of the encrypted text to
                       compute them.
                       <br/><br/>
                       If you inscribed the encrypted text on Bitcoin, you can find it
@@ -285,7 +285,7 @@ const App = () => {
                       If you do not know the txid, you can still find the encrypted text by
                       indexing the blockchain. To make this easier, each pair of master fingerprints is hashed with SHA256,
                       with the first four bytes appended to the encrypted text. By building an index
-                      of these hashes, you can quickly find the encrypted text for any pair of keys.
+                      of these hashes, you can quickly find the encrypted text for any pair of seeds.
                       An open source indexer is under development.
                     </AccordionContent>
                   </AccordionItem>
