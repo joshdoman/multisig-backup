@@ -1,6 +1,6 @@
 # multisig-backup
 
-A tool to safely inscribe a `k-of-n` multisig descriptor permanently on Bitcoin so that `k` seeds is sufficient to recover the funds.
+A tool to encrypt and inscribe a `k-of-n` multisig descriptor permanently on Bitcoin so that `k` seeds is always sufficient to recover the funds.
 
 This solution encrypts the sensitive data in the descriptor so that it cannot be recovered without `k` extended public keys (xpubs), allowing it to be inscribed publicly on Bitcoin while preserving the user's privacy.
 
