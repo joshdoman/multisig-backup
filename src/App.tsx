@@ -13,6 +13,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import WalletConnect from './WalletConnect';
 import { useToast } from "@/components/ui/use-toast";
 
 import encrypt from './lib/encrypt';
@@ -197,6 +198,8 @@ const App = () => {
                 >
                 Add Another Xpub
               </Button>
+
+              <WalletConnect />
               
               <Button 
                 onClick={handleDecrypt}
