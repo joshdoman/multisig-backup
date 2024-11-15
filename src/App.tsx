@@ -212,7 +212,7 @@ const App = () => {
               <Button
                   onClick={handleAddXpub}
                   variant="outline"
-                  className="w-full p-0 m-0 mt-0"
+                  className="w-full"
                 >
                 Add Another Xpub
               </Button>
