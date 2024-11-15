@@ -15,10 +15,23 @@ import {
 } from "@/components/ui/accordion";
 import WalletConnect from './WalletConnect';
 import { useToast } from "@/components/ui/use-toast";
+import TrezorConnect from '@trezor/connect-web';
 
 import encrypt from './lib/encrypt';
 import decrypt from './lib/decrypt';
 import Footer from './Footer';
+
+try {
+  TrezorConnect.init({
+    lazyLoad: true,
+    manifest: {
+      email: "contact@multisigbackup.com",
+      appUrl: "multisigbackup.com",
+    },
+  });
+} catch (e) {
+  console.error("Unable to call TrezorConnect.manifest.");
+}
 
 const App = () => {
   const [descriptor, setDescriptor] = useState<string>('');
@@ -183,23 +196,26 @@ const App = () => {
               />
               
               {decryptXpubs.map((xpub, index) => (
-                <Input
-                  key={index}
-                  placeholder={`Enter xpub ${index + 1}`}
-                  value={xpub}
-                  onChange={(e) => updateXpub(index, e.target.value)}
-                />
+                <div key={index}>
+                  <Input
+                    placeholder={`Enter xpub ${index + 1}`}
+                    value={xpub}
+                    onChange={(e) => updateXpub(index, e.target.value)}
+                  />
+                  <WalletConnect
+                    encryptedInput={encryptedInput}
+                    onNewXpub={(xpub: string) => updateXpub(index, xpub)}
+                    />
+                </div>
               ))}
 
               <Button
                   onClick={handleAddXpub}
                   variant="outline"
-                  className="w-full"
+                  className="w-full p-0 m-0 mt-0"
                 >
                 Add Another Xpub
               </Button>
-
-              <WalletConnect />
               
               <Button 
                 onClick={handleDecrypt}

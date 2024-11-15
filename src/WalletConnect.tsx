@@ -2,76 +2,123 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { validateBIP32Path } from '@caravan/bitcoin';
+import TrezorConnect from '@trezor/connect-web';
+import TransportWebUSB from "@ledgerhq/hw-transport-webusb";
+import { AppClient } from "ledger-bitcoin";
 
-const WalletConnect = () => {
+import { parseEncryptedDescriptor } from './lib/parse';
+
+interface WalletConnectProps {
+  encryptedInput: string
+  onNewXpub: (xpub: string) => void;
+}
+
+const WalletConnect: React.FC<WalletConnectProps> = ({ encryptedInput, onNewXpub }) => {
   const [selectedWallet, setSelectedWallet] = useState('');
   const [derivationPath, setDerivationPath] = useState('');
-  const [xpub, setXpub] = useState('');
   const [error, setError] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isDialogOpen, setDialogOpen] = useState(false);
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+  };
 
   const connectWallet = async () => {
     setIsConnecting(true);
     setError('');
     try {
-      // This is where you would implement the actual hardware wallet connection
-      // You would need to use libraries specific to each wallet type:
-      // - @ledgerhq/hw-transport-webusb for Ledger
-      // - trezor-connect for Trezor
-      // - @coldcard/sdk for Coldcard
-      throw new Error('Wallet connection not implemented');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  const deriveXpub = async () => {
-    setError('');
-    try {
       if (!selectedWallet) {
-        throw new Error('Please select a wallet first');
+        throw new Error('Please select a wallet');
       }
       if (!derivationPath) {
         throw new Error('Please enter a derivation path');
       }
 
-      // Validate derivation path format
-      const pathRegex = /^(\d+h?\/)*\d+h?$/;
-      if (!pathRegex.test(derivationPath)) {
+      const bip32Path = 'm' + '/' + derivationPath.replace(/h/g, `'`);
+      if (validateBIP32Path(bip32Path)) {
         throw new Error('Invalid derivation path format');
       }
 
-      // This is where you would implement the actual xpub derivation
-      // The implementation would depend on the selected wallet type
-      throw new Error('XPUB derivation not implemented');
-    } catch (err) {
-      setError(err.message);
+      if (!navigator.usb) {
+        throw new Error('This browser is not supported. Please use Chrome instead.')
+      }
+
+      let xpub;
+      if (selectedWallet === 'ledger') {
+        const transport = await TransportWebUSB.create();
+        const app = new AppClient(transport);
+        xpub = await app.getExtendedPubkey(bip32Path, true);
+      } else if (selectedWallet === 'trezor') {
+        const result = await TrezorConnect.getPublicKey({
+          path: bip32Path,
+          coin: 'btc'
+        });
+        if (result.success) {
+          xpub = result.payload.xpub;
+        } else {
+          throw new Error('Something went wrong. Please try again.');
+        }
+      } else {
+        throw new Error('Wallet not supported.');
+      }
+      onNewXpub(xpub);
+      closeDialog();
+    } catch (err: unknown) {
+      const e = err as Error;
+      if (e.message.includes("UNKNOWN_ERROR")) {
+        setError(e.message + " - make sure the Bitcoin app is open")
+      } else {
+        setError(e.message);
+      }
+    } finally {
+      setIsConnecting(false);
     }
   };
 
+  const onOpenChange = (isOpen: boolean) => {
+    setDialogOpen(isOpen);
+    
+    if (derivationPath === '' && encryptedInput !== '') {
+      const { bip32Paths } = parseEncryptedDescriptor(encryptedInput);
+      // Filter out non-standard derivation paths
+      const standardPaths = bip32Paths.filter(str => 
+        str.startsWith('44') ||
+        str.startsWith('45') ||
+        str.startsWith('48') ||
+        str.startsWith('49') ||
+        str.startsWith('84') ||
+        str.startsWith('86')
+      );
+
+      // Automatically set derivation path if all standard paths are the same
+      if (standardPaths.every(path => path === bip32Paths[0])) {
+        setDerivationPath(bip32Paths[0]);
+      }
+    }
+  }
+
   return (
-    <Dialog>
+    <Dialog open={isDialogOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">Connect Hardware Wallet</Button>
+        <Button variant="link" size="sm" className="text-xs text-cyan-900 p-2">
+          Connect Hardware Wallet
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Hardware Wallet Xpub Derivation</DialogTitle>
-          {/* <DialogDescription>
-            Make changes to your profile here. Click save when you're done.
-          </DialogDescription> */}
+          <DialogTitle>Derive Xpub Using Hardware Wallet</DialogTitle>
+          <DialogDescription className='hidden' />
         </DialogHeader>
         <div className="space-y-2">
           <label className="text-sm font-medium">Select Wallet Type</label>
@@ -82,7 +129,6 @@ const WalletConnect = () => {
             <SelectContent>
               <SelectItem value="ledger">Ledger</SelectItem>
               <SelectItem value="trezor">Trezor</SelectItem>
-              <SelectItem value="coldcard">Coldcard</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -95,7 +141,7 @@ const WalletConnect = () => {
             onChange={(e) => setDerivationPath(e.target.value)}
           />
           <p className="text-xs text-gray-500">
-            Use h for hardened indices (e.g., 44h/0h/0h/0)
+            Use ' or h for hardened indices (e.g., 45h/0h/0h/0)
           </p>
         </div>
 
@@ -103,17 +149,9 @@ const WalletConnect = () => {
           <Button 
             className="w-full"
             onClick={connectWallet}
-            disabled={isConnecting}
+            disabled={isConnecting || selectedWallet === ''}
           >
             {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-          </Button>
-          
-          <Button 
-            className="w-full"
-            onClick={deriveXpub}
-            disabled={!selectedWallet}
-          >
-            Derive XPUB
           </Button>
         </div>
 
@@ -121,15 +159,6 @@ const WalletConnect = () => {
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-        )}
-
-        {xpub && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">XPUB</label>
-            <div className="p-2 bg-gray-100 rounded break-all">
-              {xpub}
-            </div>
-          </div>
         )}
       </DialogContent>
     </Dialog>

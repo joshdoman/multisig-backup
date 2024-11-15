@@ -1,5 +1,6 @@
 import bs58check from 'bs58check';
 
+import { validateBIP32Path } from '@caravan/bitcoin';
 import { base64ToUint8Array, hexToUint8Array } from './utils';
 
 // Extracts each multisig in the descriptor, including xpubs, xfps, and the number
@@ -32,7 +33,10 @@ export const parseDescriptor = (descriptor: string) => {
     ].map(m => m[1]).map(bs58check.decode);
     const numXpubs = submatch[2].split(',').length;
     const numXfps = submatch[2].split('[').length - 1;
-    multisigs.push({ requiredSigs, xfps, xpubs, numXfps, numXpubs });
+    const derivationPaths = [
+      ...submatch[2].matchAll(/\[([0-9/'h]*)\]/g),
+    ].map(m => m[1]).filter(str => !validateBIP32Path(str.replace(/h/g, `'`)));
+    multisigs.push({ requiredSigs, xfps, xpubs, derivationPaths, numXfps, numXpubs });
   }
 
   return { taprootPubKey, multisigs };
@@ -55,12 +59,14 @@ export const parseEncryptedDescriptor = (encryptedText: string) => {
   let totalXfps = 0;
   let i = 0;
   const groupedEncryptedShares = [];
-  for (const { requiredSigs, numXfps, numXpubs } of strippedMultisigs) {
+  const bip32Paths = [];
+  for (const { requiredSigs, numXfps, numXpubs, derivationPaths } of strippedMultisigs) {
     if (requiredSigs === 0 || numXpubs === 0) {
       throw new Error('Invalid encrypted text');
     }
     totalXpubs += numXpubs;
     totalXfps += numXfps;
+    bip32Paths.push(...derivationPaths);
 
     const encryptedShareBytes = numXpubs > 1 && requiredSigs > 1 ? 33 : 32;
     if (i + encryptedShareBytes * numXpubs > encodedData.length) {
@@ -98,5 +104,6 @@ export const parseEncryptedDescriptor = (encryptedText: string) => {
     xfpPairHashes,
     totalXfps,
     totalXpubs,
+    bip32Paths
   };
 }
