@@ -51,7 +51,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ encryptedInput, onNewXpub
       }
 
       if (!navigator.usb) {
-        throw new Error('This browser is not supported. Please use Chrome instead.')
+        throw new Error('This browser is not supported. Please use Chrome instead.');
       }
 
       let xpub;
@@ -77,7 +77,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ encryptedInput, onNewXpub
     } catch (err: unknown) {
       const e = err as Error;
       if (e.message.includes("UNKNOWN_ERROR")) {
-        setError(e.message + " - make sure the Bitcoin app is open")
+        setError(e.message + " - make sure the Bitcoin app is open");
       } else {
         setError(e.message);
       }
@@ -88,6 +88,10 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ encryptedInput, onNewXpub
 
   const onOpenChange = (isOpen: boolean) => {
     setDialogOpen(isOpen);
+
+    if (!navigator.usb) {
+      setError('This browser is not supported. Please use Chrome instead.');
+    } 
     
     if (derivationPath === '' && encryptedInput !== '') {
       const { bip32Paths } = parseEncryptedDescriptor(encryptedInput);
