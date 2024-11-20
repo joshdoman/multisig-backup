@@ -27,7 +27,7 @@ export default async function encrypt(descriptor: string) {
     // Hash each unique pair of fingerprints
     xfpPairHashes.push(...await Promise.all(xfps
       .flatMap((a, i) => xfps.slice(i + 1)
-      .map(b => sha256(joinUint8Arrays([a, b]))))));
+      .map(b => sha256(joinUint8Arrays((a < b) ? [a, b] : [b, a]))))));
 
     if (xpubs.length > 1 && requiredSigs > 1) {
       // Use Shamir's Secret Sharing

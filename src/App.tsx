@@ -1,12 +1,13 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from "@/components/ui/toaster";
 import TrezorConnect from '@trezor/connect-web';
 
-import Footer from './Footer';
-import Recovery from './Recovery';
-import Inscribe from './Inscribe';
-import FAQ from './FAQ';
+import Footer from './components/Footer';
+import Recover, { RecoverState } from './components/Recover';
+import Inscribe from './components/Inscribe';
+import FAQ from './components/FAQ';
 
 try {
   TrezorConnect.init({
@@ -21,6 +22,12 @@ try {
 }
 
 const App = () => {
+  const [descriptor, setDescriptor] = useState<string>('');
+  const [recoverState, setRecoverState] = useState<RecoverState>({
+    showXfps: true,
+    xpubs: [''],
+  });
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-2xl mx-auto m-4">
@@ -31,7 +38,8 @@ const App = () => {
           <p className='text-sm'>
             This tool encrypts the sensitive data in your <span className='font-bold'>k-of-n</span> descriptor 
             so you can safely inscribe it on Bitcoin.
-            Recovery is easy - simply decrypt by deriving any <span className='font-bold'>k</span> extended public keys.
+            Recovery is easy - all you need is two master fingerprints 
+            and <span className='font-bold'>k</span> extended public keys.
           </p>
         </CardHeader>
         <CardContent>
@@ -43,11 +51,11 @@ const App = () => {
             </TabsList>
 
             <TabsContent value="encrypt" className="space-y-4">
-              <Inscribe />
+              <Inscribe descriptor={descriptor} setDescriptor={setDescriptor} />
             </TabsContent>
 
             <TabsContent value="decrypt" className="space-y-4">
-              <Recovery />
+              <Recover state={recoverState} setState={setRecoverState} />
             </TabsContent>
 
             <TabsContent value="faq" className="space-y-4">

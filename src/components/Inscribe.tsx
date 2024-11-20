@@ -3,11 +3,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import encrypt from './lib/encrypt';
+import encrypt from '../lib/encrypt';
 import CopyableTextarea from './CopyableTextarea';
 
-const Inscribe = () => {
-  const [descriptor, setDescriptor] = useState<string>('');
+interface InscribeProps {
+  descriptor: string;
+  setDescriptor: (descriptor: string) => void;
+}
+
+const Inscribe: React.FC<InscribeProps> = ({ descriptor, setDescriptor }) => {
   const [encryptedData, setEncryptedData] = useState<string>('');
   const [encryptWarning, setEncryptWarning] = useState<string>('');
   const [encryptError, setEncryptError] = useState<string>('');

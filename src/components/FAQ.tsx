@@ -36,28 +36,28 @@ export default function FAQ() {
       <AccordionItem value="item-3">
         <AccordionTrigger>How do I recover my descriptor?</AccordionTrigger>
         <AccordionContent>
-          To recover your descriptor, simply input the encrypted text and
-          any <span className='font-bold'>k</span> xpubs.
-          If you do not know the xpubs but have <span className='font-bold'>k</span> seeds,
-          use the derivation paths at the start of the encrypted text to
-          compute them.
+        To recover your descriptor, start by inputting two master fingerprints and
+          pressing "Recover." This will fetch all descriptors that have been encrypted
+          and inscribed on Bitcoin and contain these two master fingerprints.
+
           <br/><br/>
-          If you inscribed the encrypted text on Bitcoin, you can find it
-          at any time by looking up the reveal transaction on any
-          inscription-compatible block explorer, 
-          like <a className='underline' href="https://ordinals.com" target="_blank" rel="noopener">ordinals.com</a> or <a className='underline' href="https://mempool.space" target="_blank" rel="noopener">mempool.space</a>.
+
+          Next, select the descriptor you wish to decrypt and input
+          any <span className='font-bold'>k</span> xpubs. If you do not know the xpubs 
+          but have <span className='font-bold'>k</span> seeds, use the derivation paths
+          at the start of the encrypted text to derive them.
+
           <br/><br/>
-          If you do not know the txid, you can still find the encrypted text by
-          indexing the blockchain. To make this easier, each pair of master fingerprints is hashed with SHA256,
-          with the first four bytes appended to the encrypted text. By building an index
-          of these hashes, you can quickly find the encrypted text for any pair of seeds.
-          An open source indexer is under development.
+
+          Trezor and Ledger are supported natively. If you hvae a different device,
+          follow the device's instructions to obtain the xpubs and master fingerprints.
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="item-4">
-        <AccordionTrigger>Do you see my data?</AccordionTrigger>
+        <AccordionTrigger>Can you see my descriptor?</AccordionTrigger>
         <AccordionContent>
-          No, this tool runs 100% in your browser and never transmits your data.
+          No, this tool never transmits your plaintext descriptor.
+          Your descriptor is encrypted and decrypted entirely in your browser.
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="item-5">

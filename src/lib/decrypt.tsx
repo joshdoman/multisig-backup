@@ -38,7 +38,7 @@ export default async function decrypt(encryptedText: string, decryptXpubs: strin
   let requiredShares = 0;
   let decryptedShares = 0;
   for (const { encryptedShares, requiredSigs } of groupedEncryptedShares) {
-    requiredShares = requiredSigs;
+    requiredShares = Math.max(requiredSigs, requiredShares);
 
     // Try to decrypt shares with xpub hashes
     const newDecryptedShares = [];
