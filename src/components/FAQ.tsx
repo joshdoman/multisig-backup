@@ -36,7 +36,7 @@ export default function FAQ() {
       <AccordionItem value="item-3">
         <AccordionTrigger>How do I recover my descriptor?</AccordionTrigger>
         <AccordionContent>
-        To recover your descriptor, start by inputting two master fingerprints and
+          To recover your descriptor, start by inputting two master fingerprints and
           pressing "Recover." This will fetch all descriptors that have been encrypted
           and inscribed on Bitcoin and contain these two master fingerprints.
 
