@@ -55,7 +55,14 @@ const Inscribe: React.FC<InscribeProps> = ({ descriptor, setDescriptor }) => {
       </Button>
 
       {encryptedData && (
-        <CopyableTextarea value={encryptedData} />
+        <>
+          <CopyableTextarea value={encryptedData} />
+          <Button variant="outline" className="w-full" asChild>
+            <a href={`https://btcscribe.org?msg=${encodeURIComponent(encryptedData)}`} target="_blank">
+              Inscribe on Bitcoin
+            </a>
+          </Button>
+        </>
       )}
 
       {encryptError && !encryptedData && (
