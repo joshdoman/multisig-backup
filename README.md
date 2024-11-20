@@ -1,8 +1,8 @@
 # multisig-backup
 
-A tool to encrypt and inscribe a `k-of-n` multisig descriptor permanently on Bitcoin so that `k` seeds is always sufficient to recover the funds.
+A tool to encrypt and inscribe a `k-of-n` multisig descriptor permanently on Bitcoin so that `k` seeds is always enough to recover the funds.
 
-This solution encrypts the sensitive data in the descriptor so that it cannot be recovered without `k` extended public keys (xpubs), allowing it to be inscribed publicly on Bitcoin while preserving the user's privacy.
+This tool encrypts the sensitive data in the descriptor so that it cannot be recovered without `k` extended public keys (xpubs), allowing it to be inscribed publicly on Bitcoin while preserving the user's privacy. Users can retrieve the inscription at any time using two master fingerprints and then decrypt by deriving `k` extended public keys.
 
 ## The Problem
 
@@ -28,6 +28,9 @@ In addition, each pair of master fingerprints is hashed with SHA256, and the fir
 2. A zero nonce is used when encrypting the plaintext and the shamir shares. This is safe because each key is guaranteed to be unique, even if an xpub appears multiple times in the descriptor or the descriptor is encrypted more than once.
 3. In the plaintext, the xfps appear first followed by the xpubs, in the order that they appear in the descriptor.
 
+### Recovery
+To recover the encrypted descriptor, the user inputs two master fingerprints (xfps) and presses "Recover." This sends the first four bytes of the SHA256 hash of the sorted xfps to a server, which returns the `inscriptionIds` matching this xfp pair. This server continuously indexes the blockchain, using the open source indexer available at [multisig-recovery](https://github.com/joshdoman/multisig-recovery). The encrypted descriptor(s) are then fetched from [ordinals.com](https://ordinals.com).
+
 ### Decryption
 Decryption occurs through the following steps:
 1. The user inputs the encrypted descriptor and at least `k` xpubs. If necessary, the user computes the xpubs using their `k` seeds and the derivation paths in the stripped descriptor.
@@ -52,8 +55,11 @@ Sparrow can import non-standard multisig configuration files from several wallet
 ### Encryption
 <img width="1460" alt="Screenshot 2024-11-12 at 3 44 28 PM" src="https://github.com/user-attachments/assets/bbd06478-a358-40ac-91d3-a77d22365624">
 
+### Recovery
+<img width="1462" alt="Screenshot 2024-11-20 at 2 24 33 PM" src="https://github.com/user-attachments/assets/2efef722-fa7a-4706-941f-ff39877feb71">
+
 ### Decryption
-<img width="1462" alt="Screenshot 2024-11-12 at 3 44 49 PM" src="https://github.com/user-attachments/assets/7491f56a-b716-4492-8a14-365895e40a4c">
+<img width="1463" alt="Screenshot 2024-11-20 at 2 25 08 PM" src="https://github.com/user-attachments/assets/506e9946-3b51-4248-ba98-8accb994e9c1">
 
 ## Prerequisites
 
