@@ -25,7 +25,13 @@ const App = () => {
   const [descriptor, setDescriptor] = useState<string>('');
   const [recoverState, setRecoverState] = useState<RecoverState>({
     showXfps: true,
+    xfp0: '',
+    xfp1: '',
     xpubs: [''],
+    input: '',
+    inscriptions: [],
+    selectedInscription: '',
+    decryptedDescriptor: '',
   });
   
   return (

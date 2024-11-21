@@ -11,18 +11,18 @@ import { hexToUint8Array, joinUint8Arrays, sha256, uint8ArrayToHex } from '../li
 import { parseEncryptedDescriptor } from '@/lib/parse';
 import { DescriptorChecksum } from '@/lib/checksum';
 
-const RECOVER_URL = 'https://api.multisigbackup.com';
-const ORD_URL = 'https://ordinals.com';
+const RECOVER_URL = import.meta.env.VITE_RECOVER_URL || 'https://api.multisigbackup.com';
+const ORD_URL = import.meta.env.VITE_ORD_URL || 'https://ordinals.com';
 
 export interface RecoverState {
   showXfps: boolean;
-  xfp0?: string;
-  xfp1?: string;
+  xfp0: string;
+  xfp1: string;
   xpubs: string[];
-  input?: string;
-  inscriptions?: string[];
-  selectedInscription?: string;
-  decryptedDescriptor?: string;
+  input: string;
+  inscriptions: string[];
+  selectedInscription: string;
+  decryptedDescriptor: string;
 }
 
 interface RecoverProps {
