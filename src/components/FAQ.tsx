@@ -38,7 +38,7 @@ export default function FAQ() {
         <AccordionContent>
           To recover your descriptor, start by inputting two master fingerprints and
           pressing "Recover." This will fetch all descriptors that have been encrypted
-          and inscribed on Bitcoin and contain these two master fingerprints.
+          and inscribed on Bitcoin that contain these two master fingerprints.
 
           <br/><br/>
 
@@ -56,8 +56,8 @@ export default function FAQ() {
       <AccordionItem value="item-4">
         <AccordionTrigger>Can you see my descriptor?</AccordionTrigger>
         <AccordionContent>
-          No, this tool never transmits your plaintext descriptor.
-          Your descriptor is encrypted and decrypted entirely in your browser.
+          No, this tool never transmits your plaintext descriptor, xpubs, or master fingrprints.
+          Your data is encrypted and decrypted entirely within your browser.
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="item-5">

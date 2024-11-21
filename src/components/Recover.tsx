@@ -45,7 +45,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
   const [recoverError, setRecoverError] = useState<string>('');
   const [requiredShares, setRequiredShares] = useState<number>(0);
   const [decryptedShares, setDecryptedShares] = useState<number>(0);
-  const textToDecrypt = selectedInscription ?? input;
+  const textToDecrypt = selectedInscription || input;
 
   const handleAddXpub = () => {
     setState((prevState: RecoverState) => ({
@@ -80,10 +80,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
   const updateInput = (value: string) => {
     setState((prevState: RecoverState) => ({
       ...prevState,
-      encryptedData: {
-        input: value,
-        inscriptions,
-      },
+      input: value,
     }));
   };
 
@@ -294,7 +291,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
         <p className='text-left text-sm'>
           <span className='font-bold'>Step 2: </span>
           Decrypt the descriptor using any <span className='font-bold'>
-            {inscriptions ? xpubs.length : 'k'}
+            {inscriptions.length > 0 ? xpubs.length : 'k'}
           </span> extended public keys.
         </p>
         <p
@@ -305,7 +302,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
         </p>
       </div>
 
-      {inscriptions ? (
+      {inscriptions.length > 0 ? (
         <Select value={selectedInscription} onValueChange={updateSelectedInscription}>
           <SelectTrigger >
             <SelectValue />
@@ -340,7 +337,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
         </div>
       ))}
 
-      {!inscriptions && (
+      {inscriptions.length === 0 && (
         <Button
           onClick={handleAddXpub}
           variant="outline"
