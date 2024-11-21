@@ -1,16 +1,20 @@
 # multisig-backup
 
-A tool to encrypt and inscribe a `k-of-n` multisig descriptor permanently on Bitcoin so that `k` seeds is always enough to recover the funds.
+A tool to encrypt and inscribe a `k-of-n` multisig descriptor on Bitcoin, so that `k` seeds is always enough to recover the funds.
 
-This tool encrypts the sensitive data in the descriptor so that it cannot be recovered without `k` extended public keys (xpubs), allowing it to be inscribed publicly on Bitcoin while preserving the user's privacy. Users can retrieve the inscription at any time using two master fingerprints and then decrypt by deriving `k` extended public keys.
+This tool provides an easy way for someone to encrypt and inscribe their `k-of-n` descriptor, so it can always be recovered with `k` seeds. All sensitive data (master fingerprints, xpubs) is stripped from the descriptor and encrypted such that it can’t be decrypted without `k` of the xpubs.
+
+To recover, the user simply inputs two master fingerprints, which are hashed and used to find the encrypted descriptor onchain. An open source indexer makes this near instantaneous (see [multisig-recovery](https://github.com/joshdoman/multisig-recovery)). Once the user has the encrypted descriptor, they use the derivation paths in the descriptor template to derive `k` xpubs. The tool then decrypts the encrypted data and reassembles the original descriptor. For ease of use, Ledger and Trezor are integrated into the recovery process.
+
+An encrypted 2-of-3 descriptor is ~0.5kb of data, which costs ~400vb to inscribe, or ~800 sats at 2 sats/vb. This is equivalent to the cost of ~4 taproot transactions.
 
 ## The Problem
 
-A 2-of-3 multisig can be a fantastic way to secure one's Bitcoin, but the user experience today is in need of improvement. Namely, users must save the multisig descriptor, containing the 3 extended public keys, to prevent loss of funds in the event that one of the private keys is lost.
+A 2-of-3 multisig can be a fantastic way to secure one's Bitcoin, but the user experience today needs improvement. Namely, users must save the multisig descriptor, in addition to their seeds, to prevent loss of funds in the event that one of their seeds is lost. This descriptor contains all three public keys, without which the funds cannot be spent.
 
 This requirement is not intuitive and runs counter to the "2-of-3" moniker, which seems to imply that only two keys are necessary to recover one's funds. Users that forget to back up their descriptor or do so on a thumb drive or device liable to degradation risk losing access to their funds forever.
 
-The goal of this project is to realize the "2-of-3" assumption, so that multisigs operate the way users expect them to. A naive solution is to inscribe the descriptor publicly on Bitcoin. This gives the descriptor the same data availability assumptions as Bitcoin itself, but it exposes the user's wallet activity to the world. This project aims to solve this problem by encrypting the sensitive data in the descriptor such that it cannot be decrypted without the threshold number of keys.
+The goal of this project is to realize the "2-of-3" assumption, so that multisigs operate the way users expect them to. A naive solution is to inscribe the descriptor publicly on Bitcoin. This gives the descriptor the same data availability assumptions as Bitcoin itself, but it exposes the user's wallet activity to the world. This project aims to solve this problem by encrypting the sensitive data in the descriptor such that it can only be recovered with the threshold number of keys.
 
 ## How it works
 
@@ -21,24 +25,24 @@ This tool encrypts a `k-of-n` multisig descriptor using the following steps:
 3. Each share is encrypted with ChaCha20-Poly1305, using the SHA256 hash of the corresponding xpub, the encrypted data in (1), and the share index as the key.
 4. The encrypted data is Base64 encoded, concatenated with the stripped descriptor, and inscribed publicly on Bitcoin, ensuring that the descriptor can always be recovered as long as the user has `k` keys.
 
-In addition, each pair of master fingerprints is hashed with SHA256, and the first four bytes are appended to the final output. This data is not necessary for decryption, but it preserves user privacy and improves the user experience, by making it easier to index and recover the encrypted data.
+In addition, each pair of master fingerprints is hashed with SHA256, and the first four bytes are appended to the final output. This data is not necessary for decryption, but it preserves user privacy and improves the user experience, by making it easy to index and recover the encrypted data.
 
 #### Additional details
 1. The random seed is derived from 128 bits of entropy using HKDF without a salt. The shamir shares are generated from this 128 bits of entropy.
 2. A zero nonce is used when encrypting the plaintext and the shamir shares. This is safe because each key is guaranteed to be unique, even if an xpub appears multiple times in the descriptor or the descriptor is encrypted more than once.
-3. In the plaintext, the xfps appear first followed by the xpubs, in the order that they appear in the descriptor.
+3. In the plaintext of the encrypted data, the xfps appear first followed by the xpubs, in the order that they appear in the descriptor.
 
 ### Recovery
-To recover the encrypted descriptor, the user inputs two master fingerprints (xfps) and presses "Recover." This sends the first four bytes of the SHA256 hash of the sorted xfps to a server, which returns the `inscriptionIds` matching this xfp pair. This server continuously indexes the blockchain, using the open source indexer available at [multisig-recovery](https://github.com/joshdoman/multisig-recovery). The encrypted descriptor(s) are then fetched from [ordinals.com](https://ordinals.com).
+To recover the encrypted descriptor, the user inputs two master fingerprints (xfps) and presses "Recover." This sends the first four bytes of the SHA256 hash of the sorted xfps to a server, which returns the `inscriptionIds` matching this xfp pair. This server continuously indexes the blockchain, using the open source indexer available at [multisig-recovery](https://github.com/joshdoman/multisig-recovery). The encrypted descriptor(s) are then fetched from an `ord` server. The default is [ordinals.com](https://ordinals.com).
 
 ### Decryption
 Decryption occurs through the following steps:
-1. The user inputs the encrypted descriptor and at least `k` xpubs. If necessary, the user computes the xpubs using their `k` seeds and the derivation paths in the stripped descriptor.
+1. The user inputs the encrypted descriptor and at least `k` xpubs. The user derives the xpubs using their `k` seeds and the derivation paths in the descriptor template.
 2. The threshold `k` and key count `n` are extracted from the stripped descriptor.
-3. The encrypted shamir shares and encrypted data are extracted from the input, using the descriptor template to calculate the byte count of each.
+3. The encrypted shamir shares and encrypted data are extracted from the encrypted descriptor, using the descriptor template to calculate the byte count of each.
 4. Each share is optimistically decrypted using the provided xpubs.
 5. If `k` shares are decrypted, they are combined to recover the seed, and the seed is used to decrypt the list of xfps and xpubs.
-6. Once decrypted, the xfps and xpubs are inserted back into the stripped descriptor, matching their original order.
+6. Finally, the xfps and xpubs are inserted back into the descriptor in their original order.
 
 ## Getting the descriptor
 
@@ -66,6 +70,12 @@ Sparrow can import non-standard multisig configuration files from several wallet
 Before you begin, ensure you have the following installed:
 - Node.js (version 14 or later)
 - npm (usually comes with Node.js)
+
+## Environment variables
+| Name                          | Description                                             | Default Value                      |
+| ----------------------------- | ------------------------------------------------------- | -----------------------------------|
+| VITE_RECOVER_URL              | Specifies the url of the `multisig-recovery` indexer    | https://api.multisigbackup.com     |
+| VITE_ORD_URL                  | Specifies the url of the `ord` server                   | https://ordinals.com               |
 
 ## Getting started
 
