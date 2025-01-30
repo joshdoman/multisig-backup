@@ -137,10 +137,8 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
         throw new Error('Invalid master fingerprint');
       }
 
-      const xfpArray = (xfp0 < xfp1) ? [xfp0, xfp1] : [xfp1, xfp0];
-
       const xfpPairFingerprint = await sha256(
-        joinUint8Arrays(xfpArray.map(hexToUint8Array))
+        joinUint8Arrays([xfp0, xfp1].map(hexToUint8Array).sort())
       ).then(hash => uint8ArrayToHex(hash.slice(0, 4)));
 
       const xfpResponse = await fetch(`${RECOVER_URL}/inscriptionIds/${xfpPairFingerprint}`);
