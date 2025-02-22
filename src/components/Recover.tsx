@@ -11,6 +11,7 @@ import { hexToUint8Array, joinUint8Arrays, sha256, uint8ArrayToHex } from '../li
 import { parseEncryptedDescriptor } from '@/lib/parse';
 import { DescriptorChecksum } from '@/lib/checksum';
 
+const IS_MAINNET = import.meta.env.IS_MAINNET || false;
 const RECOVER_URL = import.meta.env.VITE_RECOVER_URL || 'https://api.multisigbackup.com';
 const ORD_URL = import.meta.env.VITE_ORD_URL || 'https://ordinals.com';
 
@@ -324,7 +325,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
       {xpubs.map((xpub, index) => (
         <div key={index}>
           <Input
-            placeholder={`Enter xpub ${index + 1}`}
+            placeholder={`Enter ${IS_MAINNET ? 'x' : 't'}pub ${index + 1}`}
             value={xpub}
             onChange={(e) => updateXpub(index, e.target.value)}
           />
