@@ -11,7 +11,7 @@ import { hexToUint8Array, joinUint8Arrays, sha256, uint8ArrayToHex } from '../li
 import { parseEncryptedDescriptor } from '@/lib/parse';
 import { DescriptorChecksum } from '@/lib/checksum';
 
-const IS_MAINNET = import.meta.env.VITE_IS_MAINNET || true;
+const IS_MAINNET = import.meta.env.VITE_IS_MAINNET === "true";
 const RECOVER_URL = import.meta.env.VITE_RECOVER_URL || 'https://api.multisigbackup.com';
 const ORD_URL = import.meta.env.VITE_ORD_URL || 'https://ordinals.com';
 
