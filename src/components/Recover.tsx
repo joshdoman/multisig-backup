@@ -342,7 +342,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
           variant="outline"
           className="w-full"
           >
-          Add Another Xpub
+          Add Another {IS_MAINNET ? 'Xpub' : 'Tpub'}
         </Button>
       )}
       
@@ -368,7 +368,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
           <AlertDescription>
             Decrypted {decryptedShares} of {requiredShares} required shares. 
             {requiredShares - decryptedShares > 0 && 
-              ` Please provide ${requiredShares - decryptedShares} more xpub(s).`}
+              ` Please provide ${requiredShares - decryptedShares} more ${IS_MAINNET ? 'x' : 't'}pub(s).`}
           </AlertDescription>
         </Alert>
       )}
