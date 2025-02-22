@@ -76,7 +76,7 @@ Before you begin, ensure you have the following installed:
 | ----------------------------- | ------------------------------------------------------- | -----------------------------------|
 | VITE_RECOVER_URL              | Specifies the url of the `multisig-recovery` indexer    | https://api.multisigbackup.com     |
 | VITE_ORD_URL                  | Specifies the url of the `ord` server                   | https://ordinals.com               |
-| IS_MAINNET                  | Specifies the chain (`mainnet` or `testnet`)                   | `true`               |
+| VITE_IS_MAINNET          | Specifies the chain (`mainnet` or `testnet`)                   | `true`               |
 
 ## Getting started
 
