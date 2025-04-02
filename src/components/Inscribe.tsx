@@ -13,6 +13,7 @@ interface InscribeProps {
 
 const Inscribe: React.FC<InscribeProps> = ({ descriptor, setDescriptor }) => {
   const [encryptedData, setEncryptedData] = useState<string>('');
+  const [isTestnet, setIsTestnet] = useState<boolean>(false);
   const [encryptWarning, setEncryptWarning] = useState<string>('');
   const [encryptError, setEncryptError] = useState<string>('');
 
@@ -24,8 +25,9 @@ const Inscribe: React.FC<InscribeProps> = ({ descriptor, setDescriptor }) => {
         throw new Error('Please enter a descriptor');
       }
 
-      const { encryptedText, missingXfps } = await encrypt(descriptor);
+      const { encryptedText, missingXfps, isTestnet } = await encrypt(descriptor);
       setEncryptedData(encryptedText);
+      setIsTestnet(isTestnet);
 
       if (missingXfps) {
         setEncryptWarning(`
@@ -38,6 +40,8 @@ const Inscribe: React.FC<InscribeProps> = ({ descriptor, setDescriptor }) => {
       setEncryptError(((err as Error)?.message || "unknown error"));
     }
   };
+
+  const inscribeUrl = isTestnet ? 'https://testnet4.btcscribe.org' : 'https://btcscribe.org';
 
   return (
     <>
@@ -58,7 +62,7 @@ const Inscribe: React.FC<InscribeProps> = ({ descriptor, setDescriptor }) => {
         <>
           <CopyableTextarea value={encryptedData} />
           <Button variant="outline" className="w-full" asChild>
-            <a href={`https://btcscribe.org?msg=${encodeURIComponent(encryptedData)}`} target="_blank">
+            <a href={`${inscribeUrl}?msg=${encodeURIComponent(encryptedData)}`} target="_blank">
               Inscribe on Bitcoin
             </a>
           </Button>

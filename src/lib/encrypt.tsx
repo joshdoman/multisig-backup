@@ -72,6 +72,14 @@ export default async function encrypt(descriptor: string) {
     .replace(/\[[a-f0-9]{8}\//g, "[")
     .split('#')[0];
 
+  // Flag if there is at least one testnet extended public key
+  const isTestnet = /[tuvUV]pub[a-zA-Z0-9]{107}/
+    .test(descriptor);
+
   const encryptedText = strippedDescriptor + uint8ArrayToBase64(joinUint8Arrays(data));
-  return { encryptedText, missingXfps: allXfps.length < allXpubs.length };
+  return {
+    encryptedText,
+    missingXfps: allXfps.length < allXpubs.length,
+    isTestnet
+  };
 }
