@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from './ui/select';
 
+import { parseWitness, Inscription } from 'micro-ordinals';
+import { Transaction } from '@scure/btc-signer';
+import { utf8 } from '@scure/base';
+
 import WalletConnect from './WalletConnect';
 import decrypt from '../lib/decrypt';
 import CopyableTextarea from './CopyableTextarea';
@@ -13,6 +17,7 @@ import { DescriptorChecksum } from '@/lib/checksum';
 
 const RECOVER_URL = import.meta.env.VITE_RECOVER_URL || 'https://api.multisigbackup.com';
 const ORD_URL = import.meta.env.VITE_ORD_URL || 'https://ordinals.com';
+const MEMPOOL_URL = import.meta.env.VITE_MEMPOOL_URL || 'https://mempool.space/testnet4';
 
 export interface RecoverState {
   showXfps: boolean;
@@ -152,13 +157,13 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
       }
 
       let requiredSigs = 1;
-      let failedToParse = false;
       const inscriptions: string[] = [];
+      const remainingInscriptionIds: string[] = [];
       for (let i = 0; i < inscriptionIds.length; i++) {
-        const ordResponse = await fetch(`${ORD_URL}/content/${inscriptionIds[i]}`);
-        if (ordResponse.status !== 200) continue;
-        const encryptedText = await ordResponse.text();
         try {
+          const ordResponse = await fetch(`${ORD_URL}/content/${inscriptionIds[i]}`);
+          if (ordResponse.status !== 200) throw new Error("Not found");
+          const encryptedText = await ordResponse.text();
           const { groupedEncryptedShares } = parseEncryptedDescriptor(encryptedText);
           if (i === 0) {
             groupedEncryptedShares.forEach(g => {
@@ -167,12 +172,57 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
           }
           inscriptions.push(encryptedText);
         } catch {
-          failedToParse = true;
+          remainingInscriptionIds.push(inscriptionIds[i]);
+        }
+      }
+
+      // Failed to fetch inscription from `ord`, try to fetch from mempool.space (for testnet inscriptions)
+      for (let i = 0; i < remainingInscriptionIds.length; i++) {
+        try {
+          const split: string[] = remainingInscriptionIds[i].split('i');
+          if (split.length < 2) continue;
+          const txid = split[0];
+          const index = Number(split[1]);
+          const mempoolResponse = await fetch(`${MEMPOOL_URL}/api/tx/${txid}/hex`);
+          const hex = await mempoolResponse.text();
+          const bytes = Uint8Array.from(Buffer.from(hex, 'hex'));
+          const tx = Transaction.fromRaw(bytes, { 
+            allowUnknownOutputs: true,
+            disableScriptCheck: true,
+          })
+
+          const txInscriptions: Inscription[] = [];
+          for (let i = 0; i < tx.inputsLength; i++) {
+            const input = tx.getInput(i);
+            if (!input || !input.finalScriptWitness) continue;
+            try {
+              const inputInscriptions = parseWitness(input.finalScriptWitness);
+              if (!inputInscriptions) continue;
+              txInscriptions.push(...inputInscriptions);
+            } catch {
+              // Skip if inscription parsing fails
+            }
+          }
+
+          if (index < txInscriptions.length) {
+            const inscription = txInscriptions[index];
+            if (!inscription.tags.contentType?.startsWith('text/plain')) continue;
+            const encryptedText = utf8.encode(inscription.body);
+            const { groupedEncryptedShares } = parseEncryptedDescriptor(encryptedText);
+            if (inscriptions.length === 0 && i === 0) {
+              groupedEncryptedShares.forEach(g => {
+                requiredSigs = Math.max(requiredSigs, g.requiredSigs);
+              })
+            }
+            inscriptions.push(encryptedText);
+          }
+        } catch {
+          // Skip if failed to fetch or if there's an error parsing the descriptor
         }
       }
 
       if (inscriptions.length === 0) {
-        if (failedToParse) {
+        if (inscriptionIds.length > 0) {
           throw new Error(`Failed to fetch valid inscription(s) from ${RECOVER_URL}.`);
         } else {
           throw new Error(`Failed to fetch inscription(s) from ${ORD_URL}.`);
