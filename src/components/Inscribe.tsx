@@ -63,7 +63,7 @@ const Inscribe: React.FC<InscribeProps> = ({ descriptor, setDescriptor }) => {
           <CopyableTextarea value={encryptedData} />
           <Button variant="outline" className="w-full" asChild>
             <a href={`${inscribeUrl}?msg=${encodeURIComponent(encryptedData)}`} target="_blank">
-              Inscribe on Bitcoin
+              {isTestnet ? "Inscribe on Testnet4" : "Inscribe on Bitcoin"}
             </a>
           </Button>
         </>
