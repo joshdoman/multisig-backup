@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from './ui/select';
 
+import { parseWitness, Inscription } from 'micro-ordinals';
+import { Transaction } from '@scure/btc-signer';
+import { utf8 } from '@scure/base';
+
 import WalletConnect from './WalletConnect';
 import decrypt from '../lib/decrypt';
 import CopyableTextarea from './CopyableTextarea';
@@ -13,6 +17,12 @@ import { DescriptorChecksum } from '@/lib/checksum';
 
 const RECOVER_URL = import.meta.env.VITE_RECOVER_URL || 'https://api.multisigbackup.com';
 const ORD_URL = import.meta.env.VITE_ORD_URL || 'https://ordinals.com';
+const MEMPOOL_URL = import.meta.env.VITE_MEMPOOL_URL || 'https://mempool.space/testnet4';
+
+interface InscriptionValue {
+  value: string;
+  isTestnet: boolean;
+}
 
 export interface RecoverState {
   showXfps: boolean;
@@ -20,7 +30,7 @@ export interface RecoverState {
   xfp1: string;
   xpubs: string[];
   input: string;
-  inscriptions: string[];
+  inscriptions: InscriptionValue[];
   selectedInscription: string;
   decryptedDescriptor: string;
 }
@@ -95,7 +105,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
     const newXpubs = xpubs;
     try {
       // Add xpubs if requiredSigs exceeds xpubs.length
-      const { groupedEncryptedShares } = parseEncryptedDescriptor(value);
+      const { groupedEncryptedShares } = parseEncryptedDescriptor(stripTestnetIndicator(value));
       const requiredSigs = groupedEncryptedShares.reduce((max, obj) => 
         Math.max(max, obj.requiredSigs
       ), 1);
@@ -152,27 +162,78 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
       }
 
       let requiredSigs = 1;
-      let failedToParse = false;
-      const inscriptions: string[] = [];
+      const inscriptions: InscriptionValue[] = [];
+      const remainingInscriptionIds: string[] = [];
       for (let i = 0; i < inscriptionIds.length; i++) {
-        const ordResponse = await fetch(`${ORD_URL}/content/${inscriptionIds[i]}`);
-        if (ordResponse.status !== 200) continue;
-        const encryptedText = await ordResponse.text();
         try {
+          const ordResponse = await fetch(`${ORD_URL}/content/${inscriptionIds[i]}`);
+          if (ordResponse.status !== 200) throw new Error("Not found");
+          const encryptedText = await ordResponse.text();
           const { groupedEncryptedShares } = parseEncryptedDescriptor(encryptedText);
           if (i === 0) {
             groupedEncryptedShares.forEach(g => {
               requiredSigs = Math.max(requiredSigs, g.requiredSigs);
             })
           }
-          inscriptions.push(encryptedText);
+          inscriptions.push({
+            value: encryptedText,
+            isTestnet: false,
+          });
         } catch {
-          failedToParse = true;
+          remainingInscriptionIds.push(inscriptionIds[i]);
+        }
+      }
+
+      // Failed to fetch inscription from `ord`, try to fetch from mempool.space (for testnet inscriptions)
+      for (let i = 0; i < remainingInscriptionIds.length; i++) {
+        try {
+          const split: string[] = remainingInscriptionIds[i].split('i');
+          if (split.length < 2) continue;
+          const txid = split[0];
+          const index = Number(split[1]);
+          const mempoolResponse = await fetch(`${MEMPOOL_URL}/api/tx/${txid}/hex`);
+          const hex = await mempoolResponse.text();
+          const bytes = Uint8Array.from(Buffer.from(hex, 'hex'));
+          const tx = Transaction.fromRaw(bytes, { 
+            allowUnknownOutputs: true,
+            disableScriptCheck: true,
+          });
+
+          const txInscriptions: Inscription[] = [];
+          for (let i = 0; i < tx.inputsLength; i++) {
+            const input = tx.getInput(i);
+            if (!input || !input.finalScriptWitness) continue;
+            try {
+              const inputInscriptions = parseWitness(input.finalScriptWitness);
+              if (!inputInscriptions) continue;
+              txInscriptions.push(...inputInscriptions);
+            } catch {
+              // Skip if inscription parsing fails
+            }
+          }
+
+          if (index < txInscriptions.length) {
+            const inscription = txInscriptions[index];
+            if (!inscription.tags.contentType?.startsWith('text/plain')) continue;
+            const encryptedText = utf8.encode(inscription.body);
+            const { groupedEncryptedShares } = parseEncryptedDescriptor(encryptedText);
+            if (inscriptions.length === 0 && i === 0) {
+              groupedEncryptedShares.forEach(g => {
+                requiredSigs = Math.max(requiredSigs, g.requiredSigs);
+              })
+            }
+            inscriptions.push({
+              value: encryptedText,
+              isTestnet: true,
+            });
+          }
+        } catch {
+          // Skip if failed to fetch or if there's an error parsing the descriptor
         }
       }
 
       if (inscriptions.length === 0) {
-        if (failedToParse) {
+        if (inscriptionIds.length > 0) {
           throw new Error(`Failed to fetch valid inscription(s) from ${RECOVER_URL}.`);
         } else {
           throw new Error(`Failed to fetch inscription(s) from ${ORD_URL}.`);
@@ -188,7 +249,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
         showXfps: false,
         xpubs: newXpubs,
         inscriptions,
-        selectedInscription: inscriptions[0],
+        selectedInscription: displayInscription(inscriptions[0]),
       }));
     } catch (err) {
       setRecoverError(((err as Error)?.message || "unknown error"));
@@ -208,7 +269,10 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
         throw new Error('Please enter at least one xpub');
       }
 
-      const { descriptor, decryptedShares, requiredShares } = await decrypt(textToDecrypt, xpubs);
+      const { descriptor, decryptedShares, requiredShares } = await decrypt(
+        stripTestnetIndicator(textToDecrypt),
+        xpubs
+      );
 
       setDecryptedShares(decryptedShares);
       setRequiredShares(requiredShares);
@@ -234,6 +298,16 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
     }
     return `${split[0]})${split[2].substring(0,8)}...`
   }
+
+  const testnetText = '(testnet4) ';
+  const stripTestnetIndicator = (value: string) => value.startsWith(testnetText) ? value.split(testnetText)[1] : value;
+
+  const displayInscription = (inscription: InscriptionValue, shorten: boolean = false) => {
+    const text = shorten ? shortenInscription(inscription.value) : inscription.value;
+    return (inscription.isTestnet) ? `${testnetText}${text}` : text;
+  }
+
+  const xpubLabel = selectedInscription.startsWith(testnetText) ? 'tpub' : 'xpub';
 
   return showXfps ? (
     <>
@@ -307,8 +381,8 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
           </SelectTrigger>
           <SelectContent className="w-full">
             {inscriptions.map((inscription, index) => (
-              <SelectItem key={index} value={inscription}>
-                {shortenInscription(inscription)}
+              <SelectItem key={index} value={displayInscription(inscription)}>
+                {displayInscription(inscription, /** shorten */ true)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -324,7 +398,7 @@ const Recover: React.FC<RecoverProps> = ({ state, setState }) => {
       {xpubs.map((xpub, index) => (
         <div key={index}>
           <Input
-            placeholder={`Enter xpub ${index + 1}`}
+            placeholder={`Enter ${xpubLabel} ${index + 1}`}
             value={xpub}
             onChange={(e) => updateXpub(index, e.target.value)}
           />
